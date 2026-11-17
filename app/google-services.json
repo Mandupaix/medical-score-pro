@@ -1,0 +1,84 @@
+{
+  "project_info": {
+    "project_number": "832958338899",
+    "project_id": "gen-lang-client-0386919701",
+    "storage_bucket": "gen-lang-client-0386919701.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:832958338899:android:6ff79cd5d33c894a3373a6",
+        "android_client_info": {
+          "package_name": "com.aistudio.medicalscorepro.mqtbr"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "832958338899-koe9bcbstrmvfiad0pfeb2ktfqf0u17r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.medicalscorepro.mqtbr",
+            "certificate_hash": "36aa66f26119a22d04b912f27c260a11abf083f4"
+          }
+        },
+        {
+          "client_id": "832958338899-ra6gfcug8ec8ovpp3e026n3ambtsm76d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeJYeGaqSaWZruZbBhiroUG-JRZocudZ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "832958338899-ra6gfcug8ec8ovpp3e026n3ambtsm76d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:832958338899:android:a2d3570757e9da5c3373a6",
+        "android_client_info": {
+          "package_name": "com.aistudio.medscore.xk7mvr"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "832958338899-dljbqs7igpcrjmg2knnmb9bva6os3lkf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.medscore.xk7mvr",
+            "certificate_hash": "629cb5694bbcb51cba1d90b1a612490d821315a6"
+          }
+        },
+        {
+          "client_id": "832958338899-ra6gfcug8ec8ovpp3e026n3ambtsm76d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeJYeGaqSaWZruZbBhiroUG-JRZocudZ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "832958338899-ra6gfcug8ec8ovpp3e026n3ambtsm76d.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

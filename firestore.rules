@@ -1,0 +1,257 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidLanguage(lang) {
+      return lang is string && lang in ['fr', 'en', 'es'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        ('admin' in request.auth.token && request.auth.token.admin == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        ('email' in request.auth.token &&
+         'email_verified' in request.auth.token &&
+         request.auth.token.email == 'mandupaix@gmail.com' &&
+         request.auth.token.email_verified == true)
+      );
+    }
+
+    // --- Validation Helpers ---
+    function isValidUserEvaluation(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.scoreId is string && data.scoreId.size() >= 1 && data.scoreId.size() <= 64 &&
+             data.scoreName is string && data.scoreName.size() >= 1 && data.scoreName.size() <= 128 &&
+             data.specialty is string && data.specialty.size() >= 1 && data.specialty.size() <= 64 &&
+             data.clinicalScoreValue is number &&
+             data.clinicalScoreDisplay is string && data.clinicalScoreDisplay.size() >= 1 && data.clinicalScoreDisplay.size() <= 64 &&
+             data.severityLabel is string && data.severityLabel.size() >= 1 && data.severityLabel.size() <= 64 &&
+             (!('cardiacRiskPercent' in data) || (data.cardiacRiskPercent is number && data.cardiacRiskPercent >= 0 && data.cardiacRiskPercent <= 100)) &&
+             data.diagnosis is string && data.diagnosis.size() >= 1 && data.diagnosis.size() <= 200 &&
+             (!('interventionType' in data) || (data.interventionType is string && data.interventionType.size() <= 200)) &&
+             data.breakdownSummary is string && data.breakdownSummary.size() >= 1 && data.breakdownSummary.size() <= 2000 &&
+             (!('geminiRecommendation' in data) || (data.geminiRecommendation is string && data.geminiRecommendation.size() <= 4000)) &&
+             (!('encryptedClinicalNotesCiphertext' in data) || (data.encryptedClinicalNotesCiphertext is string && data.encryptedClinicalNotesCiphertext.size() <= 4096)) &&
+             (!('encryptedClinicalNotesIv' in data) || (data.encryptedClinicalNotesIv is string && data.encryptedClinicalNotesIv.size() <= 128)) &&
+             isValidLanguage(data.language);
+    }
+
+    function isValidAnonymousEvaluation(data, docId) {
+      return data.evaluationId is string && data.evaluationId == docId &&
+             data.evaluatorUid is string && data.evaluatorUid.size() >= 1 && data.evaluatorUid.size() <= 128 &&
+             data.scoreId is string && data.scoreId.size() >= 1 && data.scoreId.size() <= 64 &&
+             data.specialty is string && data.specialty.size() >= 1 && data.specialty.size() <= 64 &&
+             data.clinicalScoreValue is number &&
+             data.severityLabel is string && data.severityLabel.size() >= 1 && data.severityLabel.size() <= 64 &&
+             data.diagnosis is string && data.diagnosis.size() >= 1 && data.diagnosis.size() <= 200 &&
+             (!('interventionType' in data) || (data.interventionType is string && data.interventionType.size() <= 200)) &&
+             data.inputs is map && data.inputs.size() <= 30 &&
+             isValidLanguage(data.language);
+    }
+
+    function isValidAiModelConfig(data) {
+      return data.totalEvaluations is int && data.totalEvaluations >= 0 &&
+             data.modelMaturity is string && data.modelMaturity in ['BOOTSTRAP', 'CALIBRATING', 'MATURE'] &&
+             data.awellScoreVersion is string && data.awellScoreVersion.size() >= 1 && data.awellScoreVersion.size() <= 32 &&
+             data.medicalCalcMcpVersion is string && data.medicalCalcMcpVersion.size() >= 1 && data.medicalCalcMcpVersion.size() <= 32 &&
+             (!('hfSpaceUrl' in data) || (data.hfSpaceUrl is string && data.hfSpaceUrl.size() <= 256)) &&
+             (!('latestSocietyNotice' in data) || (data.latestSocietyNotice is string && data.latestSocietyNotice.size() <= 500)) &&
+             (!('specialtyCounts' in data) || (data.specialtyCounts is map && data.specialtyCounts.size() <= 50));
+    }
+
+    function isValidScoreCatalogItem(data, docId) {
+      return data.scoreId is string && data.scoreId == docId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 128 &&
+             data.specialty is string && data.specialty.size() >= 1 && data.specialty.size() <= 64 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 1000 &&
+             data.license is string && data.license.size() >= 1 && data.license.size() <= 64 &&
+             data.source is string && data.source.size() >= 1 && data.source.size() <= 128 &&
+             data.version is string && data.version.size() >= 1 && data.version.size() <= 32 &&
+             data.active is bool &&
+             data.minScore is number &&
+             data.maxScore is number;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. User-isolated encrypted evaluation history
+    match /users/{userId}/evaluations/{evaluationId} {
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(evaluationId);
+      allow list: if isSignedIn() && isOwner(userId);
+
+      allow create: if isSignedIn() &&
+                       isOwner(userId) &&
+                       isValidId(evaluationId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'scoreId', 'scoreName', 'specialty',
+                         'clinicalScoreValue', 'clinicalScoreDisplay', 'severityLabel',
+                         'diagnosis', 'breakdownSummary', 'language', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'scoreId', 'scoreName', 'specialty',
+                         'clinicalScoreValue', 'clinicalScoreDisplay', 'severityLabel',
+                         'cardiacRiskPercent', 'diagnosis', 'interventionType',
+                         'breakdownSummary', 'geminiRecommendation',
+                         'encryptedClinicalNotesCiphertext', 'encryptedClinicalNotesIv',
+                         'language', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidUserEvaluation(incoming());
+
+      allow update: if isSignedIn() &&
+                       isOwner(userId) &&
+                       isValidId(evaluationId) &&
+                       isValidUserEvaluation(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'geminiRecommendation',
+                         'encryptedClinicalNotesCiphertext',
+                         'encryptedClinicalNotesIv',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isOwner(userId) && isValidId(evaluationId);
+    }
+
+    // 2. Anonymized evaluations: write-only for authenticated users, zero client reads
+    match /anonymous_evaluations/{evaluationId} {
+      allow get, list, update, delete: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(evaluationId) &&
+                       incoming().evaluatorUid == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'evaluationId', 'evaluatorUid', 'scoreId', 'specialty',
+                         'clinicalScoreValue', 'severityLabel', 'diagnosis',
+                         'inputs', 'language', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'evaluationId', 'evaluatorUid', 'scoreId', 'specialty',
+                         'clinicalScoreValue', 'severityLabel', 'diagnosis',
+                         'interventionType', 'inputs', 'language', 'createdAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidAnonymousEvaluation(incoming(), evaluationId);
+    }
+
+    // 3. MedGemma AI scores: read by owning authenticated clinician, write ONLY via HF Service Account
+    match /medgemma_ai_scores/{evaluationId} {
+      allow get: if isSignedIn() && isValidId(evaluationId) &&
+                    (resource == null || resource.data.evaluatorUid == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.evaluatorUid == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // 4. AI model configuration & monthly stats: exact get for authenticated users, write by admin / GitHub Actions SA
+    match /ai_model_config/{configId} {
+      allow get: if isSignedIn() && isValidId(configId);
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() &&
+                       isValidId(configId) &&
+                       incoming().keys().hasAll([
+                         'totalEvaluations', 'modelMaturity',
+                         'awellScoreVersion', 'medicalCalcMcpVersion', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'totalEvaluations', 'modelMaturity',
+                         'awellScoreVersion', 'medicalCalcMcpVersion',
+                         'hfSpaceUrl', 'latestSocietyNotice',
+                         'specialtyCounts', 'updatedAt'
+                       ]) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidAiModelConfig(incoming());
+
+      allow update: if isAdmin() &&
+                       isValidId(configId) &&
+                       isValidAiModelConfig(incoming()) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'totalEvaluations', 'modelMaturity',
+                         'awellScoreVersion', 'medicalCalcMcpVersion',
+                         'hfSpaceUrl', 'latestSocietyNotice',
+                         'specialtyCounts', 'updatedAt'
+                       ]);
+
+      allow delete: if false;
+    }
+
+    // 5. Score catalog: active items readable by authenticated clinicians, managed by Admin
+    match /score_catalog/{scoreId} {
+      allow get: if isSignedIn() && isValidId(scoreId) && (existing().active == true || isAdmin());
+      allow list: if isSignedIn() && (existing().active == true || isAdmin());
+
+      allow create: if isAdmin() &&
+                       isValidId(scoreId) &&
+                       incoming().keys().hasAll([
+                         'scoreId', 'name', 'specialty', 'description',
+                         'license', 'source', 'version', 'active',
+                         'minScore', 'maxScore', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'scoreId', 'name', 'specialty', 'description',
+                         'license', 'source', 'version', 'active',
+                         'minScore', 'maxScore', 'updatedAt'
+                       ]) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidScoreCatalogItem(incoming(), scoreId);
+
+      allow update: if isAdmin() &&
+                       isValidId(scoreId) &&
+                       isValidScoreCatalogItem(incoming(), scoreId) &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'name', 'specialty', 'description',
+                         'license', 'source', 'version', 'active',
+                         'minScore', 'maxScore', 'updatedAt'
+                       ]);
+
+      allow delete: if isAdmin() && isValidId(scoreId);
+    }
+
+    // 6. Admin role lookup (never client-writable)
+    match /admins/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list, create, update, delete: if false;
+    }
+  }
+}

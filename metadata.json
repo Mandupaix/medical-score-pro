@@ -1,0 +1,8 @@
+{
+  "name": "Medical Score Pro",
+  "description": "Application médicale multi-spécialités avec scores cliniques déterministes, recommandations Gemini sécurisées par App Check et analyse asynchrone MedGemma sur architecture Firebase Spark à coût zéro.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

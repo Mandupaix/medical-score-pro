@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-medicals-4c10e4c2-f93c-4854-a44b-ce5c59a22f78</string>
+    <string name="recaptcha_site_key" translatable="false">6LdvNiUuAAAAAAKS0OoHYI2XQQQOx3D6xyhPb37x</string>
+</resources>

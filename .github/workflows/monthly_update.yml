@@ -1,0 +1,35 @@
+name: Monthly Clinical Model & Catalog Aggregation
+
+on:
+  schedule:
+    # Exécution automatique le 17 de chaque mois à 08:00 UTC (sans Cloud Functions)
+    - cron: '0 8 17 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aggregate-and-check-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase Admin & Awell Score dependencies
+        working-directory: ./scripts
+        run: |
+          npm init -y
+          npm install firebase-admin @awell-health/awell-score
+
+      - name: Run Firestore aggregation, package checks & FCM alert
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIRESTORE_DATABASE_ID: ${{ secrets.FIRESTORE_DATABASE_ID || 'ai-studio-android-medicals-4c10e4c2-f93c-4854-a44b-ce5c59a22f78' }}
+          HF_SPACE_URL: ${{ vars.HF_SPACE_URL || '' }}
+        run: node scripts/monthly_aggregator.mjs

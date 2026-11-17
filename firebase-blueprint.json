@@ -1,0 +1,318 @@
+{
+  "entities": {
+    "UserEvaluation": {
+      "title": "UserEvaluation",
+      "description": "Clinician-owned clinical score evaluation with client-side Keystore-encrypted clinical notes and no patient PII.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase Auth UID of the clinician."
+        },
+        "scoreId": {
+          "type": "string",
+          "description": "Deterministic score identifier (e.g. glasgow, euroscore_ii)."
+        },
+        "scoreName": {
+          "type": "string",
+          "description": "Human-readable name of the clinical score."
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Medical specialty from Medical Calculator MCP catalog."
+        },
+        "clinicalScoreValue": {
+          "type": "number",
+          "description": "Numeric deterministic clinical score value."
+        },
+        "clinicalScoreDisplay": {
+          "type": "string",
+          "description": "Formatted clinical score string (e.g. '13 / 15' or '4.82%')."
+        },
+        "severityLabel": {
+          "type": "string",
+          "description": "Clinical severity or risk band label."
+        },
+        "cardiacRiskPercent": {
+          "type": "number",
+          "description": "Optional cardiac risk percentage for cardiology scores."
+        },
+        "diagnosis": {
+          "type": "string",
+          "description": "Free-text clinical diagnosis (anonymized)."
+        },
+        "interventionType": {
+          "type": "string",
+          "description": "Optional surgical or clinical intervention type."
+        },
+        "breakdownSummary": {
+          "type": "string",
+          "description": "Detailed deterministic breakdown of inputs and weights."
+        },
+        "geminiRecommendation": {
+          "type": "string",
+          "description": "Instant clinical recommendation generated via Firebase AI Logic (Gemini)."
+        },
+        "encryptedClinicalNotesCiphertext": {
+          "type": "string",
+          "description": "Optional Base64 AES-256-GCM ciphertext encrypted via Android Keystore."
+        },
+        "encryptedClinicalNotesIv": {
+          "type": "string",
+          "description": "Optional Base64 initialization vector for Keystore AES-256-GCM decryption."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["fr", "en", "es"],
+          "description": "Selected UI language code."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp updated via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "userId",
+        "scoreId",
+        "scoreName",
+        "specialty",
+        "clinicalScoreValue",
+        "clinicalScoreDisplay",
+        "severityLabel",
+        "diagnosis",
+        "breakdownSummary",
+        "language",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AnonymousEvaluation": {
+      "title": "AnonymousEvaluation",
+      "description": "Write-only anonymized clinical evaluation collected for MedGemma async scoring and monthly GitHub Actions aggregations.",
+      "type": "object",
+      "properties": {
+        "evaluationId": {
+          "type": "string",
+          "description": "Matching evaluation document ID."
+        },
+        "evaluatorUid": {
+          "type": "string",
+          "description": "Authenticated clinician UID for ownership linkage without patient PII."
+        },
+        "scoreId": {
+          "type": "string",
+          "description": "Clinical score identifier."
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Medical specialty."
+        },
+        "clinicalScoreValue": {
+          "type": "number",
+          "description": "Deterministic score value."
+        },
+        "severityLabel": {
+          "type": "string",
+          "description": "Severity band."
+        },
+        "diagnosis": {
+          "type": "string",
+          "description": "Anonymized diagnosis."
+        },
+        "interventionType": {
+          "type": "string",
+          "description": "Optional intervention type."
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Structured clinical input parameters."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["fr", "en", "es"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "evaluationId",
+        "evaluatorUid",
+        "scoreId",
+        "specialty",
+        "clinicalScoreValue",
+        "severityLabel",
+        "diagnosis",
+        "inputs",
+        "language",
+        "createdAt"
+      ]
+    },
+    "MedGemmaAiScore": {
+      "title": "MedGemmaAiScore",
+      "description": "Asynchronous MedGemma 1.5 4B improvement score written by Hugging Face Spaces service account.",
+      "type": "object",
+      "properties": {
+        "evaluationId": {
+          "type": "string"
+        },
+        "evaluatorUid": {
+          "type": "string"
+        },
+        "scoreId": {
+          "type": "string"
+        },
+        "improvementScore": {
+          "type": "number"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "clinicalInsights": {
+          "type": "string"
+        },
+        "modelVersion": {
+          "type": "string"
+        },
+        "computedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "evaluationId",
+        "evaluatorUid",
+        "scoreId",
+        "improvementScore",
+        "confidence",
+        "clinicalInsights",
+        "modelVersion",
+        "computedAt"
+      ]
+    },
+    "AiModelConfig": {
+      "title": "AiModelConfig",
+      "description": "Global model maturity and aggregation statistics updated monthly by GitHub Actions.",
+      "type": "object",
+      "properties": {
+        "totalEvaluations": {
+          "type": "integer"
+        },
+        "modelMaturity": {
+          "type": "string",
+          "enum": ["BOOTSTRAP", "CALIBRATING", "MATURE"]
+        },
+        "awellScoreVersion": {
+          "type": "string"
+        },
+        "medicalCalcMcpVersion": {
+          "type": "string"
+        },
+        "hfSpaceUrl": {
+          "type": "string"
+        },
+        "latestSocietyNotice": {
+          "type": "string"
+        },
+        "specialtyCounts": {
+          "type": "object"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "totalEvaluations",
+        "modelMaturity",
+        "awellScoreVersion",
+        "medicalCalcMcpVersion",
+        "updatedAt"
+      ]
+    },
+    "ScoreCatalogItem": {
+      "title": "ScoreCatalogItem",
+      "description": "Admin-managed clinical score definition stored in Firestore without Cloud Functions.",
+      "type": "object",
+      "properties": {
+        "scoreId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "specialty": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "minScore": {
+          "type": "number"
+        },
+        "maxScore": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "scoreId",
+        "name",
+        "specialty",
+        "description",
+        "license",
+        "source",
+        "version",
+        "active",
+        "minScore",
+        "maxScore",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/evaluations/{evaluationId}": {
+      "schema": { "$ref": "#/entities/UserEvaluation" },
+      "description": "User-isolated evaluation history with encrypted clinical notes."
+    },
+    "/anonymous_evaluations/{evaluationId}": {
+      "schema": { "$ref": "#/entities/AnonymousEvaluation" },
+      "description": "Write-only anonymized evaluations for MedGemma & GitHub Actions aggregation."
+    },
+    "/medgemma_ai_scores/{evaluationId}": {
+      "schema": { "$ref": "#/entities/MedGemmaAiScore" },
+      "description": "Async MedGemma improvement scores written by Hugging Face service account."
+    },
+    "/ai_model_config/{configId}": {
+      "schema": { "$ref": "#/entities/AiModelConfig" },
+      "description": "Monthly aggregated statistics and model maturity configuration."
+    },
+    "/score_catalog/{scoreId}": {
+      "schema": { "$ref": "#/entities/ScoreCatalogItem" },
+      "description": "Admin-editable clinical score catalog."
+    }
+  }
+}
